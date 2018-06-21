@@ -1,0 +1,38 @@
+version: '3.1'
+
+services:
+
+  bitcoin:
+    build: bitcoin
+    restart: always
+    volumes:
+      - ./bitcoin/bitcoin.conf:/root/.bitcoin/bitcoin.conf:ro
+      - ./bitcoin/data:/root/.bitcoin:rw
+
+  lightning:
+    build: lightning
+    restart: always
+    depends_on:
+      - bitcoin
+    links:
+      - bitcoin
+    volumes:
+      - ./lightning/bitcoin.conf:/root/.bitcoin/bitcoin.conf:ro
+      - ./lightning/data:/root/.lightning:rw
+    command: lightningd --network=testnet --log-level=debug
+
+  charge:
+    image: shesek/lightning-charge
+    restart: always
+    ports:
+      - 9112:9112
+    depends_on:
+      - lightning
+    links:
+      - bitcoin
+      - lightning
+    environment:
+      - API_TOKEN=your-secret-pw
+    volumes:
+      - ./lightning/data:/etc/lightning:ro
+      - ./charge/data:/data:rw
